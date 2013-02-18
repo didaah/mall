@@ -1,0 +1,351 @@
+<?php
+// $Id$
+
+/**
+ * @Implement of hook_schema()
+ * 数据表结构
+ */
+function mall_schema() {
+   
+  $schema['mall_category'] = array(
+    'description' => '商户类别',
+    'fields' => array(
+      'cid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '父类 id，若为 0，则是根类',
+      ),
+      'count' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '类别正常状态商户数量',
+      ),
+      'type' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '索引名称，不允许重复',
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '类别名称',
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '权重',
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'size' => 'tiny',
+        'default' => 0,
+        'description' => '状态，0：隐藏，1：正常',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '创建时间',
+      ),
+      'data' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+        'serialize' => 1,
+        'description' => '描述等序列化数据',
+      ),
+    ),
+    'unique keys' => array(
+      'pn' => array('pid', 'name'),
+      'type' => array('type')
+    ),
+    'indexes' => array(
+      'swu' => array('status', 'weight', 'created'),
+      'swu' => array('weight', 'created'),
+    ),
+    'primary key' => array('cid'),
+  );
+    
+  $schema['item_category'] = array(
+    'description' => '商品类别',
+    'fields' => array(
+      'cid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'pid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '父类 id，若为 0，则是根类',
+      ),
+      'count' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '类别正常状态商品数量',
+      ),
+      'name' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '类别名称',
+      ),
+      'type' => array(
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '索引名称，不允许重复',
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '权重',
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'size' => 'tiny',
+        'default' => 0,
+        'description' => '状态，0：隐藏，1：正常',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '创建时间',
+      ),
+      'data' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+        'serialize' => 1,
+        'description' => '描述等序列化数据',
+      ),
+    ),
+    'unique keys' => array(
+      'pn' => array('pid', 'name'),
+      'type' => array('type')
+    ),
+    'indexes' => array(
+      'swu' => array('status', 'weight', 'created'),
+      'swu' => array('weight', 'created'),
+    ),
+    'primary key' => array('cid'),
+  );
+  
+  $schema['mall'] = array(
+    'description' => '商家主表',
+    'fields' => array(
+      'mid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '商家管理员 uid',
+      ),
+      'title' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '商铺标题',
+      ),
+      'weight' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '权重',
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'size' => 'tiny',
+        'default' => 0,
+        'description' => '商家状态，0：隐藏，1：正常，其它扩展',
+      ),
+      'body' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => '商家介绍',
+      ),
+      'cid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '商户类别 id',
+      ),
+      'updated' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '更新时间',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '创建时间',
+      ),
+    ),
+    'unique keys' => array(
+      'title' => array('title'),
+    ),
+    'indexes' => array(
+      'su' => array('status', 'updated'),
+      'scu' => array('status', 'cid', 'updated'),
+      'cu' => array('cid', 'updated'),
+      'updated' => array('updated'),
+    ),
+    'primary key' => array('mid'),
+  );
+  
+  $schema['mall_item'] = array(
+    'description' => '商品表',
+    'fields' => array(
+      'iid' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'mid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '商家 id',
+      ),
+      'title' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => '商品名称',
+      ),
+      'body' => array(
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => '商品介绍',
+      ),
+      'cid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '商品类别 id',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '创建时间',
+      ),
+      'updated' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '更新时间',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'unsigned' => TRUE,
+        'default' => 0,
+        'description' => '添加人 uid',
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'size' => 'tiny',
+        'default' => 0,
+        'description' => '商品状态',
+      ),
+    ),
+    'indexes' => array(
+      'mscu' => array('mid', 'status', 'cid', 'updated'),
+      'scu' => array('status', 'cid', 'updated'),
+    ),
+    'foreign keys' => array(
+      'mid' => array(
+        'table' => 'mall',
+        'field' => 'mid',
+        'update' => 'cascade',
+        'delete' => 'cascade'
+      ),
+    ),
+    'primary key' => array('iid'),
+  );
+ 
+ return $schema;
+}
+
+/**
+ * @Implement of hook_install()
+ */
+function mall_install() {
+  $ret = array();
+
+  $ret = module_install_schema('install', 'mall');
+ 
+  return $ret;
+}
+
+/**
+ * @Implement of hook_uninstall()
+ */
+function mall_uninstall() {
+  $ret = array();
+
+  field_group_delete('mall', 'fields');
+  field_group_delete('mall', 'item_fields');
+
+  if ($data = mall_get_category()) {
+    foreach ($data as $o) {
+      field_group_delete('mall', 'fields_' . $o->cid);
+    }
+  }
+
+  if ($data = mall_get_item_category()) {
+    foreach ($data as $o) {
+      field_group_delete('mall', 'item_fields_' . $o->cid);
+    }
+  }
+
+  $ret = module_install_schema('uninstall', 'mall');
+  
+  var_init();
+  
+  return $ret;
+}
+

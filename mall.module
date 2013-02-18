@@ -1,0 +1,532 @@
+<?php
+// $Id$
+
+/**
+ * @Implement of hook_menu()
+ */
+function mall_menu() {
+  $item = array();
+  
+  $item['mall/goto'] = array(
+    'description' => '跳转到商家店铺首页',
+    'access_callback' => 'mall_is_shop_admin',
+    'page_callback' => 'mall_page_goto',
+    'file' => 'mall.page.inc'
+  );
+ 
+  $item['mall/%'] = array(
+    'description' => '商户首页',
+    'load_functions' => array(1 => array('mall_load')),
+    'access_arguments' => array('mall view'),
+    'page_callback' => 'mall_page',
+    'page_arguments' => array(1),
+    'file' => 'mall.page.inc'
+  );
+ 
+  $item['item/%'] = array(
+    'description' => '商品浏览页',
+    'load_functions' => array(1 => array('mall_item_load')),
+    'access_arguments' => array('mall item view'),
+    'page_callback' => 'mall_item_page',
+    'page_arguments' => array(1),
+    'file' => 'mall.page.inc'
+  );
+ 
+  $item['admin/mall'] = array(
+    'title' => '商户管理',
+    'description' => '管理首页',
+    'access_arguments' => array('admin mall view'),
+    'page_callback' => 'mall_admin_page',
+    'file' => 'mall.admin.inc'
+  );
+  
+  $item['admin/mall/list'] = array(
+    'title' => '商户列表',
+    'access_arguments' => array('admin mall view'),
+    'page_callback' => 'mall_admin_list',
+    'file' => 'mall.admin.inc'
+  );
+
+  $item['admin/mall/add'] = array(
+    'title' => '添加商户',
+    'access_arguments' => array('admin mall add'),
+    'page_callback' => array('mall_admin_form'),
+    'file' => 'mall.admin.inc'
+  );
+
+  $item['admin/mall/edit/%'] = array(
+    'title' => '编辑商户',
+    'load_functions' => array(3 => array('mall_load')),
+    'access_arguments' => array('admin mall edit'),
+    'page_callback' => 'mall_admin_form',
+    'page_arguments' => array(3),
+    'file' => 'mall.admin.inc'
+  );
+
+  $item['admin/mall/delete/%'] = array(
+    'title' => '删除商户',
+    'load_functions' => array(3 => array('mall_load')),
+    'access_arguments' => array('admin mall delete'),
+    'page_callback' => 'mall_admin_delete',
+    'page_arguments' => array(3),
+    'file' => 'mall.admin.inc'
+  );
+
+  $item['admin/mall/category'] = array(
+    'title' => '商户类别',
+    'access_arguments' => array('admin mall category'),
+    'page_callback' => 'mall_admin_category',
+    'file' => 'mall.fields.inc'
+  );
+
+  $item['admin/mall/fields'] = array(
+    'title' => '商户类别默认字段',
+    'access_arguments' => array('admin mall category fields'),
+    'page_callback' => 'mall_admin_fields',
+    'file' => 'mall.fields.inc'
+  );
+
+  $item['admin/mall/item'] = array(
+    'title' => '商品列表',
+    'access_arguments' => array('admin mall item'),
+    'page_callback' => 'mall_admin_item',
+    'file' => 'mall.admin.inc'
+  );
+
+  $item['admin/mall/item/category'] = array(
+    'title' => '商品类别',
+    'access_arguments' => array('admin mall item category'),
+    'page_callback' => 'mall_admin_item_category',
+    'file' => 'mall.fields.inc'
+  );
+
+  $item['admin/mall/item/fields'] = array(
+    'title' => '商品类别默认字段',
+    'access_arguments' => array('admin mall item category fields'),
+    'page_callback' => 'mall_admin_item_fields',
+    'file' => 'mall.fields.inc'
+  );
+
+  return $item;
+}
+
+/**
+ * @Implement of hook_prem()
+ */
+function mall_perm() {
+  return array(
+    'mall view' => '浏览商户',
+    'mall item view' => '浏览商品',
+    'admin mall view' => '浏览商户管理',
+    'admin mall add' => '添加商户',
+    'admin mall edit' => '编辑商户',
+    'admin mall delete' => '删除商户',
+    'admin mall category' => '管理商户类别',
+    'admin mall category fields' => '管理商户字段',
+    'admin mall item' => '管理商品',
+    'admin mall item category' => '管理商品类别',
+    'admin mall item category fields' => '管理商品字段',
+  );
+}
+
+/**
+ * @Implement of hook_system_admin_menus()
+ */
+function mall_system_admin_menus() {
+  return array(array(
+    array(t('mall', '商户管理'), 'admin/mall'),
+    array(t('mall', '添加商户'), 'admin/mall/add'),
+    array(t('mall', '商户列表'), 'admin/mall/list'),
+    array(t('mall', '商品列表'), 'admin/mall/item'),
+    array(t('mall', '商户类别'), 'admin/mall/category'),
+    array(t('mall', '商户字段'), 'admin/mall/fields'),
+    array(t('mall', '商品类别'), 'admin/mall/item/category'),
+    array(t('mall', '商品字段'), 'admin/mall/item/fields'),
+  ), t('mall', '商城'));
+}
+
+// public mall_get_category($cid = NULL) {{{ 
+/**
+ * mall_get_category
+ * 获取已启用的商户类别
+ * 
+ * @param int $cid 
+ *  类别 id，或指定，则获取匹配值
+ * @access public
+ * @return array|object
+ */
+function mall_get_category($cid = NULL) {
+  if (!$data = var_get('mall_category')) {
+    if ($fetch = db_query('SELECT * FROM {mall_category} ORDER BY weight ASC, created DESC')) {
+      foreach ($fetch as $o) {
+        $o->data = unserialize($o->data);
+        $data[$o->cid] = $o;
+      }
+      var_set('mall_category', $data);
+    }
+  }
+
+  return $cid ? $data[$cid] : $data;
+}
+// }}}
+
+// public mall_get_item_category($cid = NULL) {{{ 
+/**
+ * mall_get_item_category
+ * 获取已启用的商品类别
+ * 
+ * @param int $cid 
+ *  类别 id，或指定，则获取匹配值
+ * @access public
+ * @return array|object
+ */
+function mall_get_item_category($cid = NULL) {
+  if (!$data = var_get('mall_item_category')) {
+    if ($fetch = db_query('SELECT * FROM {item_category} ORDER BY weight ASC, created DESC')) {
+      foreach ($fetch as $o) {
+        $o->data = unserialize($o->data);
+        $data[$o->cid] = $o;
+      }
+      var_set('mall_item_category', $data);
+    }
+  }
+
+  return $cid ? $data[$cid] : $data;
+}
+// }}}
+
+/**
+ * @Implement of hook_field_call_group()
+ */
+function mall_field_call_group($type = NULL) {
+  $groups = array(
+    'fields' => array(
+    	'title' => t('mall', '商户默认字段'),
+      'description' => t('mall', '商户默认字段，作用于所有商户类别'),
+    ),
+    'item_fields' => array(
+    	'title' => t('mall', '商品默认字段'),
+      'description' => t('mall', '商品默认字段，作用于所有商品类别'),
+    ),
+  );
+
+  // 获取所有商户类别，定义类别扩展字段信息
+  if ($data = mall_get_category()) {
+    foreach ($data as $cid => $o) {
+      $groups['fields_' . $cid] = array(
+        'title' => t('mall', '商户类别!name扩展字段', array('!name' => $o->name)),
+      ); 
+    }     
+  }
+
+  // 获取所有商品类别，定义类别扩展字段信息
+  if ($data = mall_get_item_category()) {
+    foreach ($data as $cid => $o) {
+      $groups['item_fields_' . $cid] = array(
+        'title' => t('mall', '商品类别!name扩展字段', array('!name' => $o->name)),
+      ); 
+    }     
+  }
+
+  return $type ? $groups[$type] : $groups;
+}
+
+// public mall_multi_level_options($cid, $datas, &$options, $prefix = '') {{{ 
+/**
+ * mall_multi_level_options
+ * 将类别按 pid 组合，组合后的格式如：
+ *  服装
+ *  ----男装
+ *  --------上装
+ *  --------下装
+ *  ----女装
+ *  --------上装
+ *  --------下装
+ * 
+ * @param int $pid 
+ *  pid
+ * @param array $datas 
+ *  所有类别，以 pid 组织
+ * @param array $options 
+ *  按 pid 组织后的数组
+ * @param string $prefix 
+ *  前标识，默认为 --
+ * @param int $full
+ *  0、返回适用于表单 #options 的数组，1、返回全部数据
+ * @access public
+ * @return void
+ */
+function mall_multi_level_options($pid, $datas, &$options, $prefix = '', $full = 0) {
+  if (!empty($datas[$pid])) {
+    $prefix .= '--';
+    foreach ($datas[$pid] as $o) {
+      $o->name = $prefix . $o->name;
+      $options[$o->cid] = $full ? $o : $o->name;
+      if (!empty($datas[$o->cid])) mall_multi_level_options($o->cid, $datas, $options, $prefix, $full);
+    }
+  }
+}
+// }}}
+
+// public mall_multi_level_merge_options($pid, $datas, &$options, $prefix = '', $full = 0) {{{ 
+/**
+ * mall_multi_level_merge_options
+ * 多级分类合并显示，最终格式如：
+ *  服装-->女装-->毛衣
+ *
+ * @param int $pid 
+ *  pid
+ * @param array $datas 
+ *  所有类别，以 pid 组织
+ * @param array $options 
+ *  按 pid 组织后的数组
+ * @param string $prefix 
+ *  分割标识，默认为 -->
+ * @param string $parent
+ *  父级类别名称
+ * @access public
+ * @return void
+ */
+function mall_multi_level_merge_options($pid, $datas, &$options, $prefix = '-->', $parent = '') {
+  if (!empty($datas[$pid])) {
+    foreach ($datas[$pid] as $o) {
+      if ($pid != 0) $o->name = $prefix . $o->name;
+      $o->name = $parent . $o->name;
+      if (!empty($datas[$o->cid])) {
+        mall_multi_level_merge_options($o->cid, $datas, $options, $prefix, $o->name);
+      } else {
+        $options[$o->cid] = $o->name;
+      }
+    }
+  }
+}
+// }}}
+
+// public mall_get_category_parents($cid, $datas) {{{ 
+/**
+ * mall_get_category_parents
+ * 根据类别 cid 获取它的所有父类
+ * 
+ * @param int $cid 
+ *  类别 id
+ * @param array $datas 
+ *  所有类别，以 cid 为键名
+ * @access public
+ * @return array
+ */
+function mall_get_category_parents($cid, $datas) {
+  $parents = array();
+  if (!empty($datas[$cid])) {
+    $parents[$cid] = $datas[$cid];
+    if (!empty($datas[$datas[$cid]->pid])) {
+      $parents = array_merge($parents, mall_get_category_parents($datas[$cid]->pid, $datas));
+    }
+  }
+  return $parents;
+}
+// }}}
+
+// public mall_load($mid) {{{ 
+/**
+ * mall_load
+ * 加载一条商户记录
+ *
+ * @param int $mid 
+ *  商户 id
+ * @access public
+ * @return object
+ */
+function mall_load($mid) {
+  static $data;
+  
+  if (!isset($data[$mid])) {
+    if ($data[$mid] = db_query('SELECT m.*, u.name FROM {mall} m INNER JOIN
+    {users} u ON m.uid = u.uid WHERE m.mid = ?', array($mid), array('return' => 'one'))) {
+      $data[$mid]->nid = $mid;
+
+      field_get_node_load('mall', 'fields', $data[$mid]);
+      
+      if ($data[$mid]->cid) {
+        field_get_node_load('mall', 'fields_' . $data[$mid]->cid, $data[$mid]);
+      }
+
+      if (!empty($data[$mid]->cid)) {
+        $data[$mid]->category = mall_get_category($data[$mid]->cid);
+      }
+      
+      module_alter_all('mall_load', $data[$mid]);
+    }
+  }
+
+  return $data[$mid];
+}
+// }}}
+
+// public mall_item_load($iid) {{{ 
+/**
+ * mall_item_load
+ * 加载一条商品记录
+ *
+ * @param int $iid 
+ *  商品 id
+ * @access public
+ * @return object
+ */
+function mall_item_load($iid) {
+  static $data;
+  
+  if (!isset($data[$iid])) {
+    if ($data[$iid] = db_query('SELECT * FROM {mall_item} WHERE iid = ?', array($iid), array('return' => 'one'))) {
+      $data[$iid]->mall = mall_load($data[$iid]->mid);
+      field_get_node_load('mall', 'item_fields', $data[$iid]);
+      if ($data[$iid]->cid) {
+        field_get_node_load('mall', 'item_fields_' . $data[$iid]->cid, $data[$iid]);
+      }
+ 
+      if (!empty($data[$iid]->cid)) {
+        $data[$iid]->category = mall_get_category($data[$iid]->cid);
+      }
+     
+      module_alter_all('mall_item_load', $data[$iid]);
+    }
+  }
+
+  return $data[$iid];
+}
+// }}}
+
+// public mall_category_load($cid) {{{ 
+/**
+ * mall_category_load
+ * 加载一条商户类别记录
+ * 
+ * @param int $cid 
+ *  类别 id
+ * @access public
+ * @return object
+ */
+function mall_category_load($cid) {
+  static $data;
+
+  if (!isset($data[$cid])) {
+    if ($data[$cid] = db_query('SELECT * FROM {mall_category} WHERE cid = ?',
+    array($cid), array('return' => 'one'))) {
+      $data[$cid]->data = unserialize($data[$cid]->data);
+    }
+  }
+
+  return $data[$cid];
+}
+// }}}
+
+// public mall_item_category_load($cid) {{{ 
+/**
+ * mall_item_category_load
+ * 加载一条商品类别记录
+ * 
+ * @param int $cid 
+ *  类别 id
+ * @access public
+ * @return object
+ */
+function mall_item_category_load($cid) {
+  static $data;
+
+  if (!isset($data[$cid])) {
+    if ($data[$cid] = db_query('SELECT * FROM {item_category} WHERE cid = ?',
+    array($cid), array('return' => 'one'))) {
+      $data[$cid]->data = unserialize($data[$cid]->data);
+    }
+  }
+
+  return $data[$cid];
+}
+// }}}
+
+/**
+ * @Implement of hook_system_cache_clear()
+ */
+function mall_system_cache_clear($op = 'submit', $v = NULL) {
+  if ($op == 'submit' && !empty($v['value']['hook'])) {
+    var_del('mall_item_category', 0);
+    var_del('mall_category', 0);
+  }
+}
+
+/**
+ * @Implement of hook_theme()
+ */
+function mall_theme() {
+  return array(
+    'mall' => array(
+      'tpl' => 'mall.tpl.php',
+      'args' => array('mall'),
+    ),
+    'mall_item' => array(
+      'tpl' => 'mall_item.tpl.php',
+      'args' => array('item'),
+    ),
+  );
+}
+
+/**
+ * @Implement of hook_template_preprocess_x()
+ * 
+ * 商户可按商户类别/商户 id 创建模板文件：
+ * mall_{$mall->mid}.tpl.php
+ * mall_{$mall->category->type}.tpl.php
+ * mall.tpl.php
+ */
+function mall_template_preprocess_mall(&$var, $hook) {
+  if (isset($var['mall']->category) && !empty($var['mall']->category->type)) {
+    $var['theme_config']->tpl[] = 'mall_' . $var['mall']->category->type . '.tpl.php';
+  } 
+  $var['theme_config']->tpl[] = 'mall_' . $var['mall']->mid . '.tpl.php';
+}
+
+/**
+ * @Implement of hook_template_preprocess_x()
+ * 
+ * 商品可按商品类别/商品 id 创建模板文件：
+ * mall_item_{$item->iid}.tpl.php
+ * mall_item_{$item->category->type}.tpl.php
+ * mall_item.tpl.php
+ */
+function mall_template_preprocess_mall_item(&$var, $hook) {
+  if (isset($var['mall']->category) && !empty($var['mall']->category->type)) {
+    $var['theme_config']->tpl[] = 'mall_item_' . $var['mall']->category->type . '.tpl.php';
+  } 
+  $var['theme_config']->tpl[] = 'mall_item_' . $var['mall']->iid . '.tpl.php';
+}
+
+/**
+ * @Implement of hook_init()
+ */
+function mall_init() {
+  module_include_file('mall.center.inc', 'mall');
+}
+
+// public mall_is_shop_admin() {{{ 
+/**
+ * mall_is_shop_admin
+ * 判断用户是否为商户管理
+ * 
+ * @param int $uid
+ *  用户 uid，默认为当前用户
+ * @access public
+ * @return bool
+ */
+function mall_is_shop_admin($uid = NULL) {
+  if (empty($uid)) $uid = $GLOBALS['user']->uid;
+
+  if (empty($uid)) return false;
+
+  static $data;
+
+  if (!isset($data[$uid])) {
+    $data[$uid] = db_query('SELECT * FROM {mall} WHERE uid = ?', array($uid), array('return' => 'one'));
+  }
+
+  return $data[$uid];
+}
+// }}}

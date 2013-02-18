@@ -1,0 +1,10 @@
+<?php
+// $Id$
+
+$info = array(
+  'name' => '商城评论',
+  'description' => '为商铺、产品等提供咨询、评论功能',
+  'ver' => '1.0',
+  'language' => 'zh-hans',
+  'dependencies' => array('comment', 'mall'), // 依赖评论模块
+);

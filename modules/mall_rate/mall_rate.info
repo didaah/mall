@@ -1,0 +1,11 @@
+<?php
+// $Id$
+
+$info = array(
+  'name' => '商城评价',
+  'description' => '商城评价信用系统',
+  'ver' => '1.0',
+  'language' => 'zh-hans',
+  'dependencies' => array('mall'),
+);
+
